@@ -58,8 +58,9 @@ app.use((req, res, next) => {
 app.use(require('./middlewares/authMiddlewares').checkIfUser);
 
 // Routers
-//app.use(require('./routes/coreRoute'));
-//app.use(require('./routes/authRoute'));
+
+app.use(require('./routes/authRoute'));
+app.use(require('./routes/productRoute'));
 
 
 // Connect DB + Start server
