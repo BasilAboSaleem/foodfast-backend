@@ -61,7 +61,7 @@ app.use(require('./middlewares/authMiddlewares').checkIfUser);
 
 app.use(require('./routes/authRoute'));
 app.use(require('./routes/productRoute'));
-
+app.use(require('./routes/orderRoute'));
 
 // Connect DB + Start server
 const PORT = process.env.PORT || 3001;
