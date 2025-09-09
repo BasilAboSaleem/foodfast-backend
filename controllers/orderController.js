@@ -5,6 +5,11 @@ exports.createOrder = async (req, res) => {
     const { client, products, totalPrice } = req.body;
     const order = new Order({ client, products, totalPrice });
     await order.save();
+
+    // Emit real-time event via Socket.io
+    const io = req.app.get("io");
+    io.emit("newOrder", order);
+
     res.status(201).json(order);
   } catch (err) {
     res.status(400).json({ error: err.message });

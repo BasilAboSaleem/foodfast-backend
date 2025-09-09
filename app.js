@@ -8,6 +8,8 @@ const methodOverride = require('method-override');
 const path = require("path");
 const cookieParser = require('cookie-parser');
 const connectDB = require('./config/db');
+const http = require('http');
+const { Server } = require('socket.io');
 
 // Body parsers
 app.use(express.urlencoded({ extended: true }));
@@ -35,7 +37,7 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   store: MongoStore.create({
-    mongoUrl: process.env.MONGO_URI,
+    mongoUrl: process.env.MONGODB_URL,
     collectionName: 'sessions',
   }),
   cookie: {
@@ -55,16 +57,35 @@ app.use((req, res, next) => {
 });
 
 // Middleware placeholders
-app.use(require('./middlewares/authMiddlewares').checkIfUser);
+// app.use(require('./middlewares/authMiddlewares').checkIfUser);
 
 // Routers
-
 app.use(require('./routes/authRoute'));
 app.use(require('./routes/productRoute'));
 app.use(require('./routes/orderRoute'));
 
-// Connect DB + Start server
+// Connect DB + Start server with Socket.io
 const PORT = process.env.PORT || 3001;
+
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "*", 
+  },
+});
+
+// Make io accessible in controllers
+app.set("io", io);
+
+// Socket.io connection
+io.on("connection", (socket) => {
+  console.log("🔌 New client connected:", socket.id);
+
+  socket.on("disconnect", () => {
+    console.log("❌ Client disconnected:", socket.id);
+  });
+});
+
 connectDB().then(() => {
-  app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+  server.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
 }).catch(err => console.log(err));
