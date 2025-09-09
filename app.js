@@ -64,6 +64,11 @@ app.use(require('./routes/authRoute'));
 app.use(require('./routes/productRoute'));
 app.use(require('./routes/orderRoute'));
 
+app.get("/test-orders", (req, res) => {
+  res.render("testOrders");
+});
+
+
 // Connect DB + Start server with Socket.io
 const PORT = process.env.PORT || 3001;
 

@@ -36,3 +36,39 @@ exports.getProducts = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+// Update product
+exports.updateProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+
+    const updatedProduct = await Product.findByIdAndUpdate(id, updates, { new: true });
+
+    if (!updatedProduct) return res.status(404).json({ error: "Product not found" });
+
+    // Clear cached products
+    await redis.del("products");
+
+    res.json(updatedProduct);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+// Delete product
+exports.deleteProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const deletedProduct = await Product.findByIdAndDelete(id);
+    if (!deletedProduct) return res.status(404).json({ error: "Product not found" });
+
+    // Clear cached products
+    await redis.del("products");
+
+    res.json({ message: "Product deleted successfully" });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
