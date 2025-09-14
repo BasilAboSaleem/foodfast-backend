@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Test Driver Location</title>
+  <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+  <h1>Driver Location Test</h1>
+
+  <label>Order ID: <input id="orderId" value="12345" /></label>
+  <button onclick="joinRoom()">Join Order Room</button>
+
+  <h2>Driver Location:</h2>
+  <pre id="location"></pre>
+
+  <script>
+    const socket = io("http://localhost:3001");
+
+    function joinRoom() {
+      const orderId = document.getElementById("orderId").value;
+      socket.emit("joinOrderRoom", orderId);
+
+      // Receive location updates
+      socket.on("updateDriverLocation", (location) => {
+        document.getElementById("location").innerText = JSON.stringify(location, null, 2);
+      });
+    }
+
+    // Simulate driver sending location every 10 seconds
+    setInterval(() => {
+      const orderId = document.getElementById("orderId").value;
+      if (orderId) {
+        socket.emit("driverLocationUpdate", {
+          orderId,
+          location: {
+            lat: (Math.random() * 90).toFixed(5),
+            lng: (Math.random() * 90).toFixed(5)
+          }
+        });
+      }
+    }, 10000);
+  </script>
+</body>
+</html>

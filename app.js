@@ -63,11 +63,19 @@ app.use((req, res, next) => {
 app.use(require('./routes/authRoute'));
 app.use(require('./routes/productRoute'));
 app.use(require('./routes/orderRoute'));
+app.use(require("./routes/chatRoute"));
 
 app.get("/test-orders", (req, res) => {
   res.render("testOrders");
 });
 
+app.get("/test-driver-location", (req, res) => {
+  res.render("testDriverLocation");
+});
+
+app.get("/test-chat", (req, res) => {
+  res.render("testChat");
+});
 
 // Connect DB + Start server with Socket.io
 const PORT = process.env.PORT || 3001;
@@ -86,10 +94,45 @@ app.set("io", io);
 io.on("connection", (socket) => {
   console.log("🔌 New client connected:", socket.id);
 
+  // Join chat room
+  socket.on("joinChat", (chatId) => {
+    socket.join(`chat:${chatId}`);
+    console.log(`✅ ${socket.id} joined chat room chat:${chatId}`);
+  });
+
+  // Send message
+  socket.on("sendMessage", async ({ chatId, sender, message }) => {
+    // Save message in DB
+    const ChatMessage = require("./models/ChatMessage");
+    const newMessage = new ChatMessage({ chatId, sender, message });
+    await newMessage.save();
+
+    // Broadcast to chat room
+    io.to(`chat:${chatId}`).emit("newMessage", newMessage);
+  });
+
+  // Typing indicator
+  socket.on("typing", ({ chatId, sender }) => {
+    socket.to(`chat:${chatId}`).emit("typing", { sender });
+  });
+
   socket.on("disconnect", () => {
     console.log("❌ Client disconnected:", socket.id);
   });
 });
+
+const { sub } = require("./config/redis");
+
+// Redis Subscriber
+sub.subscribe("orderChannel");
+
+sub.on("message", (channel, message) => {
+  if (channel === "orderChannel") {
+    const order = JSON.parse(message);
+    io.emit("newOrder", order); 
+  }
+});
+
 
 connectDB().then(() => {
   server.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
