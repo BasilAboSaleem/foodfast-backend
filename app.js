@@ -57,13 +57,15 @@ app.use((req, res, next) => {
 });
 
 // Middleware placeholders
-// app.use(require('./middlewares/authMiddlewares').checkIfUser);
+app.use(require('./middlewares/authMiddlewares').checkIfUser);
 
 // Routers
 app.use(require('./routes/authRoute'));
 app.use(require('./routes/productRoute'));
 app.use(require('./routes/orderRoute'));
 app.use(require("./routes/chatRoute"));
+app.use(require('./routes/announcementRoutes'));
+
 
 app.get("/test-orders", (req, res) => {
   res.render("testOrders");
@@ -77,6 +79,9 @@ app.get("/test-chat", (req, res) => {
   res.render("testChat");
 });
 
+app.get("/test-announcements", (req, res) => {
+  res.render("testAnnouncements");
+}) 
 // Connect DB + Start server with Socket.io
 const PORT = process.env.PORT || 3001;
 
@@ -133,6 +138,37 @@ sub.on("message", (channel, message) => {
   }
 });
 
+
+// Announcements namespace
+const Announcement = require("./models/Announcement");
+
+const annNs = io.of("/announcements");
+
+annNs.on("connection", (socket) => {
+  console.log("📢 Client connected to /announcements:", socket.id);
+
+  // audience joining (customers, drivers, restaurants, all)
+  socket.on("join_audience", (audience) => {
+    const valid = ["all", "customers", "drivers", "restaurants"];
+    if (valid.includes(audience)) {
+      socket.join(audience);
+      console.log(`✅ ${socket.id} joined announcements audience: ${audience}`);
+    }
+  });
+
+  // client requests recent announcements
+  socket.on("get_recent", async (limit = 10) => {
+    const recent = await Announcement.find({})
+      .sort({ pinned: -1, createdAt: -1 })
+      .limit(Math.min(limit, 50))
+      .lean();
+    socket.emit("announcement:recent", recent);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("❌ Client disconnected from /announcements:", socket.id);
+  });
+});
 
 connectDB().then(() => {
   server.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));

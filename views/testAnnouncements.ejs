@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Test Announcements</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    #announcements { border: 1px solid #ccc; padding: 10px; max-width: 500px; }
+    .announcement { border-bottom: 1px solid #ddd; padding: 5px 0; }
+    .announcement:last-child { border-bottom: none; }
+  </style>
+</head>
+<body>
+  <h1>📢 Test Announcements</h1>
+
+  <div>
+    <label>Audience: </label>
+    <select id="audience">
+      <option value="all">All</option>
+      <option value="customers">Customers</option>
+      <option value="drivers">Drivers</option>
+      <option value="restaurants">Restaurants</option>
+    </select>
+    <button id="joinBtn">Join Audience</button>
+  </div>
+
+  <h2>Announcements</h2>
+  <div id="announcements"></div>
+
+  <script>
+    // Connect to /announcements namespace
+    const socket = io("/announcements");
+
+    const announcementsDiv = document.getElementById("announcements");
+    const audienceSelect = document.getElementById("audience");
+    const joinBtn = document.getElementById("joinBtn");
+
+    // Join selected audience
+    joinBtn.onclick = () => {
+      const audience = audienceSelect.value;
+      socket.emit("join_audience", audience);
+      announcementsDiv.innerHTML += `<p style="color:green;">Joined audience: ${audience}</p>`;
+    };
+
+    // Listen for new announcements
+    socket.on("announcement:new", (data) => {
+      addAnnouncement(data);
+    });
+
+    // Listen for recent announcements
+    socket.on("announcement:recent", (list) => {
+      announcementsDiv.innerHTML = "";
+      list.forEach(addAnnouncement);
+    });
+
+    // Request recent announcements when connected
+    socket.on("connect", () => {
+      console.log("✅ Connected to announcements");
+      socket.emit("get_recent", 10);
+    });
+
+    // Helper to render announcement
+    function addAnnouncement(a) {
+      const el = document.createElement("div");
+      el.classList.add("announcement");
+      el.innerHTML = `<strong>${a.title}</strong><br>${a.message}<br><small>${new Date(a.createdAt).toLocaleString()}</small>`;
+      announcementsDiv.prepend(el);
+    }
+  </script>
+</body>
+</html>
