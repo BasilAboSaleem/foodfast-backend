@@ -81,7 +81,7 @@ app.get("/test-chat", (req, res) => {
 
 app.get("/test-announcements", (req, res) => {
   res.render("testAnnouncements");
-}) 
+})  
 // Connect DB + Start server with Socket.io
 const PORT = process.env.PORT || 3001;
 

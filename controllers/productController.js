@@ -1,18 +1,33 @@
 const Product = require('../models/Product');
-const redis = require('../config/redis');
-
+const cloudinary = require('../config/cloudinary');
+const { redis } = require('../config/redis');
 exports.createProduct = async (req, res) => {
   try {
-    const { name, price, image, availability } = req.body;
-    const product = new Product({ name, price, image, availability });
+    const { name, price, availability } = req.body;
+
+    if (!req.file) {
+      return res.status(400).json({ error: 'Image file is required' });
+    }
+
+    const result = await cloudinary.uploader.upload(
+      `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`,
+      { folder: 'products' }
+    );
+
+    const product = new Product({
+      name,
+      price,
+      availability,
+      image: result.secure_url,
+    });
     await product.save();
 
-    // Clear cached products when a new one is added
-    await redis.del("products");
+    await redis.del('products');
 
     res.status(201).json(product);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ error: err.message });
   }
 };
 
